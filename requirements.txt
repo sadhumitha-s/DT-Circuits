@@ -1,0 +1,15 @@
+torch
+transformer_lens
+gymnasium
+minigrid
+sae-lens
+wandb
+streamlit
+numpy
+matplotlib
+tqdm
+einops
+jaxtyping
+pytest
+stable-baselines3
+shimmy
