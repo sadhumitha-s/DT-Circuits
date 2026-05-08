@@ -18,12 +18,12 @@ class LogitAttributionEngine:
         token_index: int = -1
     ) -> Dict[str, Float[torch.Tensor, "layer head"]]:
         """
-        Computes DLA for each head: Activation @ W_O @ W_U [target_logit]
+        Calculates DLA for each head: Activation @ W_O @ W_U [target_logit]
         """
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
         
-        # Action prediction unembedding
+        # Weight for target action prediction
         W_U = self.model.predict_action[0].weight[target_logit_index] 
 
         dla_results = torch.zeros((n_layers, n_heads))
@@ -32,7 +32,7 @@ class LogitAttributionEngine:
             # [batch, pos, head, d_model]
             head_outputs = cache[f"blocks.{layer}.attn.hook_result"] 
             
-            # S_t is at 3t + 1 in interleaved (R, S, A)
+            # Use token at specified index
             last_token_output = head_outputs[0, token_index] 
             
             dla_results[layer] = torch.matmul(last_token_output, W_U)

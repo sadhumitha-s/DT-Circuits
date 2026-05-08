@@ -23,10 +23,10 @@ class HookedDT(nn.Module):
         self.action_dim = action_dim
         self.max_length = max_length
 
-        # HookedTransformer for the core transformer blocks
+        # TransformerLens core blocks
         self.transformer = HookedTransformer(cfg)
 
-        # Custom embeddings for DT
+        # DT-specific embeddings
         self.embed_return = nn.Linear(1, cfg.d_model)
         self.embed_state = nn.Linear(state_dim, cfg.d_model)
         self.embed_action = nn.Linear(action_dim, cfg.d_model)
@@ -58,7 +58,7 @@ class HookedDT(nn.Module):
         action_embeddings = self.embed_action(actions)
         returns_embeddings = self.embed_return(returns_to_go)
         
-        # Interleave (R, S, A) sequence
+        # Interleave (Return, State, Action)
         stacked_inputs = torch.stack(
             (returns_embeddings, state_embeddings, action_embeddings), dim=2
         ).reshape(batch_size, 3 * seq_len, self.cfg.d_model)
@@ -68,7 +68,7 @@ class HookedDT(nn.Module):
         def embed_hook(value, hook):
             return stacked_inputs
 
-        # Inject interleaved embeddings into TransformerLens
+        # Inject interleaved embeddings via hook
         dummy_input = torch.zeros((batch_size, 3 * seq_len), dtype=torch.long, device=stacked_inputs.device)
         
         last_block_hook = f"blocks.{self.cfg.n_layers - 1}.hook_resid_post"
@@ -82,7 +82,7 @@ class HookedDT(nn.Module):
         transformer_outputs = cache[last_block_hook]
         x = transformer_outputs.reshape(batch_size, seq_len, 3, self.cfg.d_model)
 
-        # Action from state, return/state from action
+        # Compute predictions
         action_preds = self.predict_action(x[:, :, 1]) 
         return_preds = self.predict_return(x[:, :, 2]) 
         state_preds = self.predict_state(x[:, :, 2])   
@@ -101,6 +101,7 @@ class HookedDT(nn.Module):
             act_fn="relu", 
             d_mlp=d_model * 4,
             normalization_type="LN",
+            use_attn_result=True,
             device="cuda" if torch.cuda.is_available() else "cpu"
         )
         return cls(cfg, state_dim, action_dim)

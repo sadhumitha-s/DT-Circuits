@@ -25,8 +25,7 @@ class SteeringLibrary:
 
 class RTGSteerer:
     """
-    Enables 'Behavioral Steering' by manipulating Reward-to-Go (RTG) tokens or internal activations.
-    Supports Contrastive Activation Addition (CAA).
+    Manages Reward-to-Go (RTG) and activation steering using CAA.
     """
     def __init__(self, model, library: Optional[SteeringLibrary] = None):
         self.model = model
@@ -39,9 +38,7 @@ class RTGSteerer:
         custom_vector: Optional[torch.Tensor] = None,
         alpha: float = 1.0
     ) -> torch.Tensor:
-        """
-        Adds a steering vector to the RTG embeddings.
-        """
+        """Adds steering vector to RTG embeddings."""
         vector = custom_vector if custom_vector is not None else self.library.get_vector(vector_name)
         
         with torch.no_grad():
@@ -54,10 +51,7 @@ class RTGSteerer:
         negative_activations: torch.Tensor,
         method: str = "mean_diff"
     ) -> torch.Tensor:
-        """
-        Generates a steering vector using Contrastive Activation Addition.
-        'mean_diff' calculates the difference between the means of positive and negative sets.
-        """
+        """Generates steering vector using Contrastive Activation Addition (mean difference)."""
         if method == "mean_diff":
             pos_mean = positive_activations.mean(dim=0)
             neg_mean = negative_activations.mean(dim=0)
@@ -66,9 +60,7 @@ class RTGSteerer:
             raise NotImplementedError(f"Method {method} not implemented.")
 
     def apply_steering_hook(self, hook_point: str, vector_name: str, alpha: float = 1.0):
-        """
-        Returns a HookedTransformer compatible hook function that applies steering.
-        """
+        """Returns a TransformerLens compatible steering hook."""
         vector = self.library.get_vector(vector_name)
         
         def steering_hook(activations, hook):

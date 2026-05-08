@@ -7,7 +7,7 @@ from jaxtyping import Float
 
 class SAEManager:
     """
-    Manages SAEs for Decision Transformers: training, latent decomposition, and anomaly detection.
+    Handles SAE training, latent decomposition, and anomaly detection for DTs.
     """
     def __init__(self, model: nn.Module, sae_dir: str = "artifacts/saes"):
         self.model = model
@@ -21,9 +21,7 @@ class SAEManager:
         d_model: int,
         expansion_factor: int = 8,
     ) -> StandardSAE:
-        """
-        Initializes an SAE for a specific hook point.
-        """
+        """Initializes SAE for a specific hook point."""
         cfg = StandardSAEConfig(
             d_in=d_model,
             d_sae=d_model * expansion_factor,
@@ -41,9 +39,7 @@ class SAEManager:
         batch_size: int = 1024,
         epochs: int = 10,
     ):
-        """
-        Trains the SAE on trajectory activations.
-        """
+        """Trains SAE on trajectory activations."""
         if hook_point not in self.saes:
             self.setup_sae(hook_point, activations.shape[-1])
         
@@ -80,9 +76,7 @@ class SAEManager:
         hook_point: str,
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "... d_sae"]:
-        """
-        Decomposes activations into features.
-        """
+        """Decomposes activations into latent features."""
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found. Train or load it first.")
         
@@ -97,9 +91,7 @@ class SAEManager:
         hook_point: str,
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "... d_model"]:
-        """
-        Reconstructs original activations.
-        """
+        """Reconstructs activations from latents."""
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found.")
         
@@ -115,9 +107,7 @@ class SAEManager:
         hook_point: str,
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "..."]:
-        """
-        Reconstruction error for anomaly detection: ||x - x_hat|| / ||x||
-        """
+        """Calculates reconstruction error for anomaly detection."""
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found.")
         

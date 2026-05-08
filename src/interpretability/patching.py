@@ -17,9 +17,7 @@ class ActivationPatcher:
         head_index: int,
         target_token_index: int = -1
     ):
-        """
-        Replaces the output of a specific head in a clean run with values from a corrupted run.
-        """
+        """Patches head output with values from a corrupted run."""
         def patch_hook(value, hook):
             # value: [batch, pos, head, d_model]
             corrupted_value = corrupted_cache[hook.name]
@@ -39,9 +37,7 @@ class ActivationPatcher:
         patched_probs: torch.Tensor,
         correct_action_index: int
     ) -> float:
-        """
-        Measures the impact of patching on the target action probability.
-        """
+        """Calculates impact of patching on target action probability."""
         clean_val = clean_probs[0, -1, correct_action_index].item()
         patched_val = patched_probs[0, -1, correct_action_index].item()
         return clean_val - patched_val

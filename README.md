@@ -4,6 +4,22 @@ DT-Circuits is a framework for mechanistic interpretability of Decision Transfor
 
 The goal is to understand how Reward-to-Go, State, and Action tokens are processed within the residual stream, moving beyond basic behavioral observation.
 
+## Table of Contents
+- [Core Capabilities](#core-capabilities)
+- [Technical Architecture](#technical-architecture)
+- [Getting Started](#getting-started)
+- [Project Documentation](#project-documentation)
+- [Testing](#testing)
+- [Project Structure](#project-structure)
+
+## Project Documentation
+Detailed explanations of the mechanistic interpretability techniques used in this project:
+- [Circuit Discovery](./docs/circuit_discovery.md)
+- [Activation Patching](./docs/activation_patching.md)
+- [SAEs & Steering](./docs/sae_steering.md)
+
+
+
 ## Core Capabilities
 
 ### 1. Circuit Foundation
@@ -18,6 +34,11 @@ The goal is to understand how Reward-to-Go, State, and Action tokens are process
 ### 3. SAEs & Safety
 - **SAE Integration**: Tools to train and deploy SAEs on the residual stream to find monosemantic latents.
 - **Anomaly Detection**: Uses SAE reconstruction error to detect out-of-distribution (OOD) states.
+
+### 4. Path-Causal Microscope
+- **ACDC (Automated Circuit Discovery)**: Prunes the DT into a minimal sufficient subgraph for specific behaviors.
+- **Path Patching**: High-fidelity causal tracing between specific internal nodes (e.g., Goal Token → Induction Head → Action Logit).
+- **Evolutionary Scan**: Analyzes how decision-making circuits form and stabilize across training checkpoints.
 
 ## Technical Architecture
 
@@ -72,9 +93,12 @@ DT-Circuits/
 │   ├── data/               
 │   │   └── harvester.py    # PPO-based expert trajectory harvester
 │   ├── interpretability/   
+│   │   ├── acdc.py         # Automated Circuit Discovery logic
 │   │   ├── attribution.py  # Direct Logit Attribution (DLA)
+│   │   ├── evolution.py    # Developmental/Evolutionary MI scan
 │   │   ├── induction_scan.py # Induction head detection logic
 │   │   ├── patching.py     # Causal activation patching tools
+│   │   ├── path_patching.py # Path-based causal intervention engine
 │   │   ├── sae_manager.py  # SAE deployment and anomaly detection
 │   │   └── steering.py     # Steering vector generation and injection
 │   ├── models/             
@@ -82,6 +106,7 @@ DT-Circuits/
 │   └── utils/              
 ├── tests/                  # Unit and integration test suite
 │   ├── test_components.py  
+│   ├── test_path_causal_microscope.py # Phase 4 Path-Causal tests
 │   └── test_sae_and_steering.py 
 ├── config.yaml             # Experiment and environment configuration
 └── requirements.txt        # Environment dependencies
