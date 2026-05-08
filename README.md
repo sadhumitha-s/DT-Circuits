@@ -1,16 +1,21 @@
 # DT-Circuits: Mechanistic Interpretability for Decision Transformers
 
+![Python](https://img.shields.io/badge/python-3.9+-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red)
+
 DT-Circuits is a framework for mechanistic interpretability of Decision Transformers (DT). Using TransformerLens, it enables mapping neural circuits, decomposing activations with Sparse Autoencoders (SAEs), and performing causal interventions on agent decision-making.
 
-The goal is to understand how Reward-to-Go, State, and Action tokens are processed within the residual stream, moving beyond basic behavioral observation.
+The goal is to understand how Reward-to-Go, State, and Action tokens are processed within the residual stream, moving beyond black-box behavioral evaluation.
+
+---
 
 ## Table of Contents
 - [Core Capabilities](#core-capabilities)
 - [Technical Architecture](#technical-architecture)
-- [Getting Started](#getting-started)
-- [Project Documentation](#project-documentation)
-- [Testing](#testing)
 - [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+
+--- 
 
 ## Project Documentation
 Detailed explanations of the mechanistic interpretability techniques used in this project:
@@ -18,7 +23,7 @@ Detailed explanations of the mechanistic interpretability techniques used in thi
 - [Activation Patching](./docs/activation_patching.md)
 - [SAEs & Steering](./docs/sae_steering.md)
 
-
+--- 
 
 ## Core Capabilities
 
@@ -35,10 +40,12 @@ Detailed explanations of the mechanistic interpretability techniques used in thi
 - **SAE Integration**: Tools to train and deploy SAEs on the residual stream to find monosemantic latents.
 - **Anomaly Detection**: Uses SAE reconstruction error to detect out-of-distribution (OOD) states.
 
-### 4. Path-Causal Microscope
+### 4. Path-Level Causal Analysis
 - **ACDC (Automated Circuit Discovery)**: Prunes the DT into a minimal sufficient subgraph for specific behaviors.
 - **Path Patching**: High-fidelity causal tracing between specific internal nodes (e.g., Goal Token → Induction Head → Action Logit).
 - **Evolutionary Scan**: Analyzes how decision-making circuits form and stabilize across training checkpoints.
+
+--- 
 
 ## Technical Architecture
 
@@ -47,6 +54,42 @@ The platform consists of:
 - **Model Layer**: HookedDT implementation.
 - **Interpretability Layer**: Modules for attribution, patching, SAE management, and steering.
 - **Visualization Layer**: Streamlit dashboard for real-time monitoring and intervention.
+
+---
+
+## Project Structure
+
+```text
+DT-Circuits/
+├── scripts/                # Training and harvesting entry points
+│   ├── train_dt.py         # Decision Transformer training pipeline
+│   └── train_sae.py        # Sparse Autoencoder (SAE) training script
+├── src/                    
+│   ├── dashboard/          
+│   │   └── app.py          # Streamlit-based visualization UI
+│   ├── data/               
+│   │   └── harvester.py    # PPO-based expert trajectory harvester
+│   ├── interpretability/   
+│   │   ├── acdc.py         # Automated Circuit Discovery logic
+│   │   ├── attribution.py  # Direct Logit Attribution (DLA)
+│   │   ├── evolution.py    # Training Dynamics Analysis
+│   │   ├── induction_scan.py # Induction head detection logic
+│   │   ├── patching.py     # Causal activation patching tools
+│   │   ├── path_patching.py # Path-based causal intervention engine
+│   │   ├── sae_manager.py  # SAE deployment and anomaly detection
+│   │   └── steering.py     # Steering vector generation and injection
+│   ├── models/             
+│   │   └── hooked_dt.py    # TransformerLens-wrapped Decision Transformer
+│   └── utils/              
+├── tests/                  
+│   ├── test_components.py  
+│   ├── test_path_causal_microscope.py
+│   └── test_sae_and_steering.py 
+├── config.yaml             
+└── requirements.txt        
+```
+
+--- 
 
 ## Getting Started
 
@@ -74,44 +117,8 @@ pip install -r requirements.txt
    streamlit run src/dashboard/app.py
    ```
 
-## Testing
+### Testing
 
 ```bash
 PYTHONPATH=. pytest tests/
 ```
-
-## Project Structure
-
-```text
-DT-Circuits/
-├── scripts/                # Training and harvesting entry points
-│   ├── train_dt.py         # Decision Transformer training pipeline
-│   └── train_sae.py        # Sparse Autoencoder (SAE) training script
-├── src/                    
-│   ├── dashboard/          
-│   │   └── app.py          # Streamlit-based visualization UI
-│   ├── data/               
-│   │   └── harvester.py    # PPO-based expert trajectory harvester
-│   ├── interpretability/   
-│   │   ├── acdc.py         # Automated Circuit Discovery logic
-│   │   ├── attribution.py  # Direct Logit Attribution (DLA)
-│   │   ├── evolution.py    # Developmental/Evolutionary MI scan
-│   │   ├── induction_scan.py # Induction head detection logic
-│   │   ├── patching.py     # Causal activation patching tools
-│   │   ├── path_patching.py # Path-based causal intervention engine
-│   │   ├── sae_manager.py  # SAE deployment and anomaly detection
-│   │   └── steering.py     # Steering vector generation and injection
-│   ├── models/             
-│   │   └── hooked_dt.py    # TransformerLens-wrapped Decision Transformer
-│   └── utils/              
-├── tests/                  # Unit and integration test suite
-│   ├── test_components.py  
-│   ├── test_path_causal_microscope.py # Phase 4 Path-Causal tests
-│   └── test_sae_and_steering.py 
-├── config.yaml             # Experiment and environment configuration
-└── requirements.txt        # Environment dependencies
----
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
