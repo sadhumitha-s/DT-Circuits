@@ -18,33 +18,24 @@ class LogitAttributionEngine:
         token_index: int = -1
     ) -> Dict[str, Float[torch.Tensor, "layer head"]]:
         """
-        Computes DLA for each head in the model.
-        Formula: DLA = Activation @ W_O @ W_U [target_logit]
+        Computes DLA for each head: Activation @ W_O @ W_U [target_logit]
         """
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
-        d_model = self.model.cfg.d_model
         
-        # Get the unembedding matrix for the action prediction head
-        # In our HookedDT, the prediction head is a Linear layer: self.predict_action[0].weight
-        W_U = self.model.predict_action[0].weight[target_logit_index] # [d_model]
+        # Action prediction unembedding
+        W_U = self.model.predict_action[0].weight[target_logit_index] 
 
         dla_results = torch.zeros((n_layers, n_heads))
 
         for layer in range(n_layers):
-            # Head outputs from cache: [batch, pos, head, d_model]
-            # For HookedTransformer, it's usually 'blocks.{layer}.attn.hook_result'
-            head_outputs = cache[f"blocks.{layer}.attn.hook_result"] # [batch, pos, head, d_model]
+            # [batch, pos, head, d_model]
+            head_outputs = cache[f"blocks.{layer}.attn.hook_result"] 
             
-            # We take the token_index (usually the last state token)
-            # In interleaved (R, S, A), S_t is at 3t + 1
-            # If we want the last predicted action, we look at the last state token's output
+            # S_t is at 3t + 1 in interleaved (R, S, A)
+            last_token_output = head_outputs[0, token_index] 
             
-            last_token_output = head_outputs[0, token_index] # [head, d_model]
-            
-            # Attribution: projection onto W_U
-            attribution = torch.matmul(last_token_output, W_U) # [head]
-            dla_results[layer] = attribution
+            dla_results[layer] = torch.matmul(last_token_output, W_U)
 
         return dla_results
 

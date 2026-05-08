@@ -7,8 +7,7 @@ from jaxtyping import Float
 
 class SAEManager:
     """
-    Research-grade manager for Sparse Autoencoders (SAEs) integrated with Decision Transformers.
-    Handles training, decomposition into monosemantic latents, and mechanistic anomaly detection.
+    Manages SAEs for Decision Transformers: training, latent decomposition, and anomaly detection.
     """
     def __init__(self, model: nn.Module, sae_dir: str = "artifacts/saes"):
         self.model = model
@@ -23,7 +22,7 @@ class SAEManager:
         expansion_factor: int = 8,
     ) -> StandardSAE:
         """
-        Initializes an SAE for a specific hook point in the transformer.
+        Initializes an SAE for a specific hook point.
         """
         cfg = StandardSAEConfig(
             d_in=d_model,
@@ -43,7 +42,7 @@ class SAEManager:
         epochs: int = 10,
     ):
         """
-        Trains the SAE on collected trajectory activations.
+        Trains the SAE on trajectory activations.
         """
         if hook_point not in self.saes:
             self.setup_sae(hook_point, activations.shape[-1])
@@ -63,7 +62,6 @@ class SAEManager:
                 
                 optimizer.zero_grad()
                 
-                # Manual forward pass for training
                 feature_acts = sae.encode(batch_acts)
                 sae_out = sae.decode(feature_acts)
                 
@@ -83,7 +81,7 @@ class SAEManager:
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "... d_sae"]:
         """
-        Decomposes activations into monosemantic features.
+        Decomposes activations into features.
         """
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found. Train or load it first.")
@@ -100,7 +98,7 @@ class SAEManager:
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "... d_model"]:
         """
-        Reconstructs the original activations using the SAE.
+        Reconstructs original activations.
         """
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found.")
@@ -118,8 +116,7 @@ class SAEManager:
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "..."]:
         """
-        Calculates reconstruction error as a proxy for mechanistic anomaly detection.
-        Formula: ||x - x_hat|| / ||x||
+        Reconstruction error for anomaly detection: ||x - x_hat|| / ||x||
         """
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found.")

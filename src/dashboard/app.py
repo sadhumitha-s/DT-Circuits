@@ -10,47 +10,36 @@ st.set_page_config(page_title="DT-Explorer", layout="wide")
 
 st.title("DT-Explorer: Mechanistic Interpretability for Decision Transformers")
 
-# Sidebar for controls
 st.sidebar.header("Model Configuration")
 n_layers = st.sidebar.slider("Layers", 1, 12, 1)
 n_heads = st.sidebar.slider("Heads", 1, 8, 4)
 
-# Load Model
 @st.cache_resource
 def load_model():
-    # Placeholder dimensions for MiniGrid
     state_dim = 2739 # FlatObsWrapper for 8x8 MiniGrid
     action_dim = 7
     model = HookedDT.from_config(state_dim, action_dim, n_layers=n_layers, n_heads=n_heads)
-    # model.load_state_dict(torch.load("models/mini_dt.pt"))
     return model
 
 model = load_model()
 
-# Dashboard Tabs
 tab1, tab2, tab3 = st.tabs(["Circuit Mapping", "Causal Intervention", "SAE Explorer"])
 
 with tab1:
     st.header("Direct Logit Attribution")
-    # Simulate a forward pass
     if st.button("Run Attribution Analysis"):
-        # Dummy data for demo
+        # Mock data for demo
         states = torch.randn(1, 10, model.state_dim)
         actions = torch.randn(1, 10, model.action_dim)
         returns = torch.randn(1, 10, 1)
         timesteps = torch.arange(10).unsqueeze(0)
         
-        # Capture cache
         logits, cache = model.transformer.run_with_cache(
-            # Need to handle DT's interleaved forward pass here
-            # For demo, we'll just show the UI structure
             torch.randn(1, 30, model.cfg.d_model) 
         )
         
         engine = LogitAttributionEngine(model)
-        # dla = engine.calculate_dla(cache, target_logit_index=0)
         
-        # Placeholder plot
         fig, ax = plt.subplots()
         dla_mock = np.random.randn(n_layers, n_heads)
         im = ax.imshow(dla_mock, cmap="RdBu_r")

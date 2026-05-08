@@ -28,7 +28,6 @@ class ActivationPatcher:
 
         hook_name = f"blocks.{layer}.attn.hook_result"
         
-        # Run the model with the hook
         with self.model.transformer.hooks(fwd_hooks=[(hook_name, patch_hook)]):
             patched_outputs = self.model(**clean_inputs)
         

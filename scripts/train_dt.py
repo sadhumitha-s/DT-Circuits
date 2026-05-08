@@ -7,13 +7,11 @@ import numpy as np
 from tqdm import tqdm
 
 def train():
-    # 1. Collect Data
     harvester = PPOHarvester(model_path="ppo_minigrid_teacher.zip")
     trajectories = harvester.collect_trajectories(num_episodes=100)
     
-    # 2. Setup Model
     state_dim = trajectories[0]["observations"].shape[1]
-    action_dim = 7 # MiniGrid has 7 actions
+    action_dim = 7 # MiniGrid 
     
     model = HookedDT.from_config(
         state_dim=state_dim,
@@ -26,24 +24,18 @@ def train():
     optimizer = optim.AdamW(model.parameters(), lr=1e-4)
     criterion = nn.CrossEntropyLoss()
 
-    # 3. Training Loop (Simplified)
     model.train()
     for epoch in range(10):
         total_loss = 0
         for traj in tqdm(trajectories, desc=f"Epoch {epoch}"):
             states = torch.from_numpy(traj["observations"]).float().unsqueeze(0)
             actions = torch.from_numpy(traj["actions"]).long().unsqueeze(0)
-            # One-hot actions for input
             actions_one_hot = torch.nn.functional.one_hot(actions, num_classes=action_dim).float()
             returns = torch.from_numpy(traj["rewards"]).float().unsqueeze(0).unsqueeze(-1)
             timesteps = torch.arange(states.shape[1]).unsqueeze(0)
 
-            # Mask (dummy for now)
-            
             action_preds, _, _ = model(states, actions_one_hot, returns, timesteps)
             
-            # Target actions (shifted by 1 for next action prediction)
-            # Standard DT predicts a_t from s_t
             loss = criterion(action_preds.view(-1, action_dim), actions.view(-1))
             
             optimizer.zero_grad()

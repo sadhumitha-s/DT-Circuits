@@ -1,32 +1,31 @@
 # DT-Circuits: Mechanistic Interpretability for Decision Transformers
 
-DT-Circuits is a research-grade framework designed for the rigorous mechanistic interpretability of Decision Transformers (DT). By leveraging the TransformerLens paradigm, this platform enables researchers to map internal neural circuits, decompose activations using Sparse Autoencoders, and perform causal interventions on agent decision-making.
+DT-Circuits is a framework for mechanistic interpretability of Decision Transformers (DT). Using TransformerLens, it enables mapping neural circuits, decomposing activations with Sparse Autoencoders (SAEs), and performing causal interventions on agent decision-making.
 
-The primary objective is to move beyond behavioral observation and saliency maps toward a quantitative understanding of how Reward-to-Go, State, and Action tokens are processed within the residual stream.
+The goal is to understand how Reward-to-Go, State, and Action tokens are processed within the residual stream, moving beyond basic behavioral observation.
 
 ## Core Capabilities
 
 ### 1. Circuit Foundation
-- **Hooked-DT Architecture**: A custom Decision Transformer implementation wrapped in TransformerLens, providing full access to internal activations, weights, and the residual stream.
-- **Direct Logit Attribution (DLA)**: Quantitative mapping of individual attention heads and MLP layers to the final action logits.
-- **Induction Head Discovery**: Automated scanning tools to identify heads responsible for temporal pattern recognition and "memory" in RL tasks.
+- **Hooked-DT**: A Decision Transformer implementation wrapped in TransformerLens for access to internal activations and weights.
+- **Direct Logit Attribution (DLA)**: Quantifies the contribution of individual heads and MLP layers to action logits.
+- **Induction Head Discovery**: Tools to identify heads responsible for temporal pattern recognition.
 
 ### 2. Causal Interventions
-- **Activation Patching**: Surgical replacement of activations between "clean" and "corrupted" runs to identify bottleneck features and causal paths.
-- **Contrastive Activation Addition (CAA)**: Generation of steering vectors by calculating the mean difference between positive and negative activation sets.
-- **Steering Library**: A persistent library of pre-calculated vectors (e.g., success_vector, exploration_vector) that can be injected at inference time to manipulate agent behavior without retraining.
+- **Activation Patching**: Replaces activations between clean and corrupted runs to identify causal paths.
+- **Steering**: Generates and applies steering vectors (e.g., via Contrastive Activation Addition) to manipulate agent behavior at inference time.
 
-### 3. Deep Discovery & Safety
-- **Sparse Autoencoder (SAE) Integration**: Tools to train and deploy SAEs on the residual stream, decomposing polysemantic neurons into monosemantic latents.
-- **Mechanistic Anomaly Detection**: Utilizing SAE reconstruction error as a high-fidelity proxy for detecting out-of-distribution (OOD) states.
+### 3. SAEs & Safety
+- **SAE Integration**: Tools to train and deploy SAEs on the residual stream to find monosemantic latents.
+- **Anomaly Detection**: Uses SAE reconstruction error to detect out-of-distribution (OOD) states.
 
 ## Technical Architecture
 
-The platform is divided into four primary layers:
-- **Data Layer**: PPO Trajectory Harvester for generating high-quality expert demonstrations in Gymnasium environments (e.g., MiniGrid).
-- **Model Layer**: The HookedDT implementation which maintains compatibility with standard DT architectures while adding hook-based visibility.
-- **Interpretability Layer**: A suite of modules for attribution, patching, SAE management, and steering.
-- **Visualization Layer**: A Streamlit-based dashboard for real-time activation monitoring and interactive steering.
+The platform consists of:
+- **Data Layer**: PPO Trajectory Harvester for collecting expert demonstrations (e.g., MiniGrid).
+- **Model Layer**: HookedDT implementation.
+- **Interpretability Layer**: Modules for attribution, patching, SAE management, and steering.
+- **Visualization Layer**: Streamlit dashboard for real-time monitoring and intervention.
 
 ## Getting Started
 
