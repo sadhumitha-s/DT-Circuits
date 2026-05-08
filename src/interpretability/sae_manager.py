@@ -107,7 +107,9 @@ class SAEManager:
         hook_point: str,
         activations: Float[torch.Tensor, "... d_model"]
     ) -> Float[torch.Tensor, "..."]:
-        """Calculates reconstruction error for anomaly detection."""
+        """
+        Reconstruction error for anomaly detection: ||x - x_hat|| / ||x||
+        """
         if hook_point not in self.saes:
             raise ValueError(f"SAE for {hook_point} not found.")
         

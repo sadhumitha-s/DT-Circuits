@@ -52,7 +52,7 @@ class ACDCDiscovery:
         
         pruned_heads = []
         
-        # Backward greedy selection
+        # Greedy pruning (backward selection)
         pbar = tqdm(active_heads, desc="ACDC Pruning")
         for layer, head in pbar:
             # Try removing this head
@@ -98,7 +98,7 @@ class ACDCDiscovery:
         return self.default_metric(outputs, target_action)
 
     def save_manifest(self, path: str):
-        """Saves circuit manifest to JSON."""
+        """Saves the circuit manifest to a JSON file."""
         with open(path, 'w') as f:
             # Convert tuples to strings for JSON
             serializable_circuit = self.current_circuit.copy()

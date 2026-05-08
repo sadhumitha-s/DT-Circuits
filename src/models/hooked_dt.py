@@ -23,10 +23,10 @@ class HookedDT(nn.Module):
         self.action_dim = action_dim
         self.max_length = max_length
 
-        # TransformerLens core blocks
+        # HookedTransformer for the core transformer blocks
         self.transformer = HookedTransformer(cfg)
 
-        # DT-specific embeddings
+        # Custom embeddings for DT
         self.embed_return = nn.Linear(1, cfg.d_model)
         self.embed_state = nn.Linear(state_dim, cfg.d_model)
         self.embed_action = nn.Linear(action_dim, cfg.d_model)
@@ -68,7 +68,7 @@ class HookedDT(nn.Module):
         def embed_hook(value, hook):
             return stacked_inputs
 
-        # Inject interleaved embeddings via hook
+        # Inject interleaved embeddings into TransformerLens
         dummy_input = torch.zeros((batch_size, 3 * seq_len), dtype=torch.long, device=stacked_inputs.device)
         
         last_block_hook = f"blocks.{self.cfg.n_layers - 1}.hook_resid_post"

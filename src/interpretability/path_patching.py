@@ -21,7 +21,7 @@ class PathPatchingEngine:
         component_type: str = "q", # 'q', 'k', or 'v'
     ) -> torch.Tensor:
         """
-        Patches the path from a source head to a destination head's input (Q, K, or V).
+        Patches the path from a specific source head to a destination head's input (Q, K, or V).
         
         Args:
             clean_inputs: Dictionary of clean input tensors.
@@ -43,7 +43,6 @@ class PathPatchingEngine:
 
         def path_patch_hook(value, hook):
             # Replace destination head input with source head contribution from corrupted cache.
-            
             # Current implementation patches head output to observe downstream impact.
             return value
 

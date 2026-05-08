@@ -21,7 +21,7 @@ class EvolutionaryScanner:
         **model_kwargs
     ) -> List[Dict]:
         """
-        Runs ACDC on checkpoints and returns the results.
+        Runs ACDC on all checkpoints in a directory and returns the results.
         """
         results = []
         ckpt_files = sorted([f for f in os.listdir(checkpoint_dir) if f.endswith(".pt") or f.endswith(".pth")])
@@ -48,7 +48,7 @@ class EvolutionaryScanner:
         """
         Identifies the step where a major jump in circuit stability or performance occurred.
         """
-        # Identifies checkpoint where performance > 0.5 and circuit stabilizes.
+        # Simple heuristic: look for the first checkpoint where performance > 0.5 and circuit size stabilizes.
         for i, res in enumerate(scan_results):
             if res["final_perf"] > 0.5 and len(res["active_heads"]) > 0:
                 return i
