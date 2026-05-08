@@ -1,4 +1,4 @@
-# DT-Explorer
+# DT-Circuits
 
 A research-grade platform for the mechanistic interpretability of Decision Transformers.
 
