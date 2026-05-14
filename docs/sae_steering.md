@@ -4,12 +4,19 @@ Sparse Autoencoders (SAEs) allow us to decompose the residual stream into human-
 
 ## Sparse Autoencoders (SAE)
 
-An SAE learns a sparse representation of activations. By projecting dense vectors into a higher-dimensional space with a sparsity constraint (L1 penalty), we find "monosemantic" latents that often correspond to specific concepts (e.g., "Wall ahead", "Turning left").
+An SAE decomposes activations into a set of "monosemantic" features. By projecting dense vectors into a higher-dimensional space, we find latents that correspond to specific concepts (e.g., "Wall ahead").
+
+### TopK SAEs
+Instead of using an L1 penalty to force sparsity, we use **TopK SAEs**. These restrict the model to exactly $k$ active features per input. This makes the internal logic cleaner and easier to analyze compared to standard ReLU SAEs.
+
+### Natural Language Labeling (NLA)
+To avoid manual inspection of thousands of features, we use an **NLA Explainer**. This tool takes the top activations for a feature and uses a Language Model to generate a human-readable label (e.g., "Feature #402: Activates when a red key is visible").
 
 ```mermaid
 graph LR
     Act[Dense Activation] --> Enc[Encoder]
-    Enc --> Lat[Sparse Latents]
+    Enc --> Lat[TopK Sparse Latents]
+    Lat --> NLA[LLM Labeling]
     Lat --> Dec[Decoder]
     Dec --> Rec[Reconstruction]
     
@@ -35,3 +42,10 @@ graph TD
     Diff -->|Add with Gain λ| Model
     Model --> Out[Modified Behavior]
 ```
+
+## Cross-Architecture Universality Probes
+
+We use **Universality Probes** to check if features are model-specific or "universal" to the task. By comparing the SAE features of a Decision Transformer with the activations of a different model (like a DQN) trained on the same environment, we can identify shared representational spaces.
+
+- **High Correlation**: Suggests the feature is a fundamental concept required to solve the task (e.g., "The concept of a wall").
+- **Low Correlation**: Suggests the feature might be an artifact of the specific architecture or training algorithm.

@@ -6,101 +6,68 @@ from tqdm import tqdm
 class ACDCDiscovery:
     """
     Automated Circuit Discovery and Click-through (ACDC).
-    Prunes a model to find the minimal sufficient subgraph for a specific behavior.
+    Finds the minimal set of heads needed to maintain model performance.
     """
-    def __init__(
-        self, 
-        model, 
-        threshold: float = 0.1,
-        metric_fn: Optional[Callable] = None
-    ):
+    def __init__(self, model, threshold: float = 0.1):
         self.model = model
         self.threshold = threshold
-        self.metric_fn = metric_fn
-        self.current_circuit = {
-            "layers": [],
-            "heads": [],
-            "mlps": []
-        }
+        self.current_circuit = {}
 
-    def default_metric(self, model_outputs: Tuple, target_action: int) -> float:
-        """
-        Default metric: Logit of the target action.
-        """
-        action_preds = model_outputs[0] # [batch, seq, action_dim]
+    def get_metric(self, action_preds: torch.Tensor, target_action: int) -> float:
+        """Calculates logit of the target action at the last timestep."""
         return action_preds[0, -1, target_action].item()
 
-    def run(
-        self, 
-        inputs: Dict[str, torch.Tensor], 
-        target_action: int
-    ) -> Dict:
-        """
-        Runs the ACDC algorithm to prune heads.
-        """
+    def run(self, inputs: dict, target_action: int) -> dict:
+        """Greedily prunes heads while keeping performance above threshold."""
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
         
-        # Baseline performance
-        initial_outputs = self.model(**inputs)
-        initial_perf = self.default_metric(initial_outputs, target_action)
+        # Get baseline performance
+        initial_preds = self.model(**inputs)
+        initial_perf = self.get_metric(initial_preds, target_action)
         
-        active_heads = []
-        for l in range(n_layers):
-            for h in range(n_heads):
-                active_heads.append((l, h))
-        
+        all_heads = [(l, h) for l in range(n_layers) for h in range(n_heads)]
         pruned_heads = []
         
-        # Greedy pruning (backward selection)
-        pbar = tqdm(active_heads, desc="ACDC Pruning")
+        pbar = tqdm(all_heads, desc="ACDC Pruning")
         for layer, head in pbar:
-            # Try removing this head
-            current_pruned = pruned_heads + [(layer, head)]
+            # Try pruning this head + already pruned heads
+            trial_pruned = pruned_heads + [(layer, head)]
+            perf = self._eval_with_pruning(inputs, trial_pruned, target_action)
             
-            perf = self._eval_with_pruning(inputs, current_pruned, target_action)
-            
-            # Retain pruning if performance remains within threshold
+            # If performance is still good, keep it pruned
             if abs(perf - initial_perf) < self.threshold:
                 pruned_heads.append((layer, head))
                 pbar.set_postfix({"pruned": len(pruned_heads)})
         
-        final_circuit = {
-            "active_heads": [h for h in active_heads if h not in pruned_heads],
+        active_heads = [h for h in all_heads if h not in pruned_heads]
+        self.current_circuit = {
+            "active_heads": active_heads,
             "pruned_count": len(pruned_heads),
             "initial_perf": initial_perf,
             "final_perf": self._eval_with_pruning(inputs, pruned_heads, target_action)
         }
-        
-        self.current_circuit = final_circuit
-        return final_circuit
+        return self.current_circuit
 
-    def _eval_with_pruning(
-        self, 
-        inputs: Dict[str, torch.Tensor], 
-        pruned_heads: List[Tuple[int, int]],
-        target_action: int
-    ) -> float:
-        
+    def _eval_with_pruning(self, inputs: dict, pruned_heads: list, target_action: int) -> float:
+        """Evaluates model with specified heads zeroed out."""
         def pruning_hook(value, hook):
-            # hook.name format: "blocks.L.attn.hook_result"
             layer_idx = int(hook.name.split(".")[1])
             for p_layer, p_head in pruned_heads:
                 if p_layer == layer_idx:
                     value[:, :, p_head, :] = 0.0
             return value
 
-        hook_names = [f"blocks.{l}.attn.hook_result" for l in range(self.model.cfg.n_layers)]
+        hooks = [(f"blocks.{l}.attn.hook_result", pruning_hook) for l in range(self.model.cfg.n_layers)]
         
-        with self.model.transformer.hooks(fwd_hooks=[(name, pruning_hook) for name in hook_names]):
-            outputs = self.model(**inputs)
+        with self.model.transformer.hooks(fwd_hooks=hooks):
+            preds = self.model(**inputs)
             
-        return self.default_metric(outputs, target_action)
+        return self.get_metric(preds, target_action)
 
     def save_manifest(self, path: str):
-        """Saves the circuit manifest to a JSON file."""
+        """Saves discovered circuit to a JSON file."""
         with open(path, 'w') as f:
-            # Convert tuples to strings for JSON
-            serializable_circuit = self.current_circuit.copy()
-            serializable_circuit["active_heads"] = [f"L{l}H{h}" for l, h in serializable_circuit["active_heads"]]
-            json.dump(serializable_circuit, f, indent=4)
+            data = self.current_circuit.copy()
+            data["active_heads"] = [f"L{l}H{h}" for l, h in data["active_heads"]]
+            json.dump(data, f, indent=4)

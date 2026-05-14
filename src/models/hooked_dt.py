@@ -6,7 +6,7 @@ from typing import Optional, Union, List
 
 class HookedDT(nn.Module):
     """
-    A Decision Transformer implementation wrapped in TransformerLens logic.
+    Decision Transformer wrapped in TransformerLens logic.
     Supports State, Action, and Reward-to-Go (RTG) tokens.
     """
     def __init__(
@@ -15,7 +15,6 @@ class HookedDT(nn.Module):
         state_dim: int,
         action_dim: int,
         max_length: int = 30,
-        max_ep_len: int = 1000,
     ):
         super().__init__()
         self.cfg = cfg
@@ -23,71 +22,62 @@ class HookedDT(nn.Module):
         self.action_dim = action_dim
         self.max_length = max_length
 
-        # HookedTransformer for the core transformer blocks
+        # Core transformer blocks from TransformerLens
         self.transformer = HookedTransformer(cfg)
 
-        # Custom embeddings for DT
+        # DT-specific embeddings
         self.embed_return = nn.Linear(1, cfg.d_model)
         self.embed_state = nn.Linear(state_dim, cfg.d_model)
         self.embed_action = nn.Linear(action_dim, cfg.d_model)
-
         self.embed_ln = nn.LayerNorm(cfg.d_model)
 
         # Prediction heads
-        self.predict_action = nn.Sequential(
-            nn.Linear(cfg.d_model, action_dim)
-        )
-        self.predict_return = nn.Sequential(
-            nn.Linear(cfg.d_model, 1)
-        )
-        self.predict_state = nn.Sequential(
-            nn.Linear(cfg.d_model, state_dim)
-        )
+        self.predict_action = nn.Sequential(nn.Linear(cfg.d_model, action_dim))
+        self.predict_return = nn.Sequential(nn.Linear(cfg.d_model, 1))
+        self.predict_state = nn.Sequential(nn.Linear(cfg.d_model, state_dim))
 
-    def forward(
-        self,
-        states: Float[torch.Tensor, "batch seq state_dim"],
-        actions: Float[torch.Tensor, "batch seq action_dim"],
-        returns_to_go: Float[torch.Tensor, "batch seq 1"],
-        timesteps: Int[torch.Tensor, "batch seq"],
-        attention_mask: Optional[Float[torch.Tensor, "batch seq"]] = None,
-    ):
+    def get_embeddings(self, states, actions, returns_to_go):
+        """Interleaves RTG, State, and Action embeddings."""
         batch_size, seq_len, _ = states.shape
-
-        state_embeddings = self.embed_state(states)
-        action_embeddings = self.embed_action(actions)
-        returns_embeddings = self.embed_return(returns_to_go)
         
-        # Interleave (Return, State, Action)
-        stacked_inputs = torch.stack(
-            (returns_embeddings, state_embeddings, action_embeddings), dim=2
-        ).reshape(batch_size, 3 * seq_len, self.cfg.d_model)
+        ret_emb = self.embed_return(returns_to_go)
+        state_emb = self.embed_state(states)
+        act_emb = self.embed_action(actions)
         
-        stacked_inputs = self.embed_ln(stacked_inputs)
+        # Interleave: [R1, S1, A1, R2, S2, A2, ...]
+        stacked = torch.stack((ret_emb, state_emb, act_emb), dim=2)
+        stacked = stacked.reshape(batch_size, 3 * seq_len, self.cfg.d_model)
+        return self.embed_ln(stacked)
 
-        def embed_hook(value, hook):
-            return stacked_inputs
-
-        # Inject interleaved embeddings into TransformerLens
-        dummy_input = torch.zeros((batch_size, 3 * seq_len), dtype=torch.long, device=stacked_inputs.device)
+    def forward(self, states, actions, returns_to_go, timesteps=None, return_cache=False):
+        """Forward pass through DT."""
+        embeddings = self.get_embeddings(states, actions, returns_to_go)
+        dummy_tokens = torch.zeros((embeddings.shape[0], embeddings.shape[1]), 
+                                 dtype=torch.long, device=embeddings.device)
         
-        last_block_hook = f"blocks.{self.cfg.n_layers - 1}.hook_resid_post"
-        
-        with self.transformer.hooks(fwd_hooks=[("hook_embed", embed_hook)]):
-            _, cache = self.transformer.run_with_cache(
-                dummy_input,
-                names_filter=lambda name: name == last_block_hook
-            )
-        
-        transformer_outputs = cache[last_block_hook]
-        x = transformer_outputs.reshape(batch_size, seq_len, 3, self.cfg.d_model)
+        def inject_embeddings(value, hook):
+            return embeddings
 
-        # Compute predictions
-        action_preds = self.predict_action(x[:, :, 1]) 
-        return_preds = self.predict_return(x[:, :, 2]) 
-        state_preds = self.predict_state(x[:, :, 2])   
-
-        return action_preds, state_preds, return_preds
+        # We need the residual stream post-processing from the last block
+        last_resid_hook = f"blocks.{self.cfg.n_layers-1}.hook_resid_post"
+        
+        if return_cache:
+            with self.transformer.hooks(fwd_hooks=[("hook_embed", inject_embeddings)]):
+                _, cache = self.transformer.run_with_cache(dummy_tokens)
+            
+            last_resid = cache[last_resid_hook]
+            x = last_resid.reshape(states.shape[0], states.shape[1], 3, self.cfg.d_model)
+            action_preds = self.predict_action(x[:, :, 1]) # State token predicts action
+            return action_preds, cache
+        else:
+            with self.transformer.hooks(fwd_hooks=[("hook_embed", inject_embeddings)]):
+                # run_with_cache is safer to ensure we can grab the specific hook output
+                _, cache = self.transformer.run_with_cache(dummy_tokens, names_filter=lambda n: n == last_resid_hook)
+            
+            last_resid = cache[last_resid_hook]
+            x = last_resid.reshape(states.shape[0], states.shape[1], 3, self.cfg.d_model)
+            action_preds = self.predict_action(x[:, :, 1])
+            return action_preds
 
     @classmethod
     def from_config(cls, state_dim, action_dim, n_layers=2, n_heads=4, d_model=128):
@@ -97,7 +87,7 @@ class HookedDT(nn.Module):
             n_ctx=300, 
             d_head=d_model // n_heads,
             n_heads=n_heads,
-            d_vocab=10, 
+            d_vocab=10, # Dummy vocab size
             act_fn="relu", 
             d_mlp=d_model * 4,
             normalization_type="LN",
@@ -105,3 +95,4 @@ class HookedDT(nn.Module):
             device="cuda" if torch.cuda.is_available() else "cpu"
         )
         return cls(cfg, state_dim, action_dim)
+

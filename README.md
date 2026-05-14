@@ -3,57 +3,64 @@
 ![Python](https://img.shields.io/badge/python-3.9+-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-red)
 
-DT-Circuits is a framework for mechanistic interpretability of Decision Transformers (DT). Using TransformerLens, it enables mapping neural circuits, decomposing activations with Sparse Autoencoders (SAEs), and performing causal interventions on agent decision-making.
+DT-Circuits is a research framework for mechanistic interpretability of Decision Transformers, focused on causal analysis, sparse feature decomposition, and circuit-level understanding of sequential decision-making agents.
 
-The goal is to understand how Reward-to-Go, State, and Action tokens are processed within the residual stream, moving beyond black-box behavioral evaluation.
+---
+
+## Motivation
+
+Mechanistic interpretability has primarily focused on language models, while reinforcement learning agents remain comparatively underexplored.
+
+Decision Transformers provide a uniquely analyzable architecture because trajectories, rewards, and actions are represented in a unified autoregressive sequence.
+
+DT-Circuits aims to make RL agents inspectable at the circuit level rather than only through behavioral evaluation.
 
 ---
 
 ## Table of Contents
-- [Core Capabilities](#core-capabilities)
+- [Features](#features)
 - [Technical Architecture](#technical-architecture)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 
 --- 
 
-## Project Documentation
-Detailed explanations of the mechanistic interpretability techniques used in this project:
+## Documentation
 - [Circuit Discovery](./docs/circuit_discovery.md)
 - [Activation Patching](./docs/activation_patching.md)
 - [SAEs & Steering](./docs/sae_steering.md)
 
 --- 
 
-## Core Capabilities
+## Features
 
-### 1. Circuit Foundation
-- **Hooked-DT**: A Decision Transformer implementation wrapped in TransformerLens for access to internal activations and weights.
-- **Direct Logit Attribution (DLA)**: Quantifies the contribution of individual heads and MLP layers to action logits.
-- **Induction Head Discovery**: Tools to identify heads responsible for temporal pattern recognition.
+### 1. Neural Mapping
+- **Hooked-DT**: Access any internal activation or weight during the agent's run.
+- **Logit Attribution**: See which attention heads or MLP layers drive specific actions.
+- **Induction Scan**: Find heads that recognize temporal patterns and past states.
 
-### 2. Causal Interventions
-- **Activation Patching**: Replaces activations between clean and corrupted runs to identify causal paths.
-- **Steering**: Generates and applies steering vectors (e.g., via Contrastive Activation Addition) to manipulate agent behavior at inference time.
+### 2. Testing Causality
+- **Activation Patching**: Swap internal states to see what actually changes the agent's move.
+- **Behavior Steering**: Add vectors to activations to push the agent toward specific goals without retraining.
 
-### 3. SAEs & Safety
-- **SAE Integration**: Tools to train and deploy SAEs on the residual stream to find monosemantic latents.
-- **Anomaly Detection**: Uses SAE reconstruction error to detect out-of-distribution (OOD) states.
+### 3. Concept Discovery
+- **TopK SAEs**: Decompose complex activations into a few active "concepts" for easier reading.
+- **Auto-Labeling (NLA)**: Use an LLM to automatically describe what each discovered neuron feature does.
+- **Cross-Model Probes**: Check if different agents (like DQNs) learn the same internal concepts as the DT.
 
-### 4. Path-Level Causal Analysis
-- **ACDC (Automated Circuit Discovery)**: Prunes the DT into a minimal sufficient subgraph for specific behaviors.
-- **Path Patching**: High-fidelity causal tracing between specific internal nodes (e.g., Goal Token → Induction Head → Action Logit).
-- **Evolutionary Scan**: Analyzes how decision-making circuits form and stabilize across training checkpoints.
+### 4. Circuit Analysis
+- **ACDC**: Automatically strip the model down to the minimal circuit needed for a task.
+- **Path Patching**: Trace how a signal flows from a specific input token to the final action.
+- **Evolutionary Scan**: Watch how decision-making circuits form during training.
 
 --- 
 
 ## Technical Architecture
 
-The platform consists of:
-- **Data Layer**: PPO Trajectory Harvester for collecting expert demonstrations (e.g., MiniGrid).
-- **Model Layer**: HookedDT implementation.
-- **Interpretability Layer**: Modules for attribution, patching, SAE management, and steering.
-- **Visualization Layer**: Streamlit dashboard for real-time monitoring and intervention.
+- **Data**: Collects expert paths using a PPO harvester.
+- **Model**: Custom Decision Transformer compatible with TransformerLens.
+- **Tools**: Dedicated modules for attribution, patching, SAEs, and steering.
+- **Dashboard**: Streamlit UI for real-time model analysis.
 
 ---
 
@@ -61,7 +68,7 @@ The platform consists of:
 
 ```text
 DT-Circuits/
-├── scripts/                # Training and harvesting entry points
+├── scripts/                
 │   ├── train_dt.py         # Decision Transformer training pipeline
 │   └── train_sae.py        # Sparse Autoencoder (SAE) training script
 ├── src/                    
@@ -74,17 +81,16 @@ DT-Circuits/
 │   │   ├── attribution.py  # Direct Logit Attribution (DLA)
 │   │   ├── evolution.py    # Training Dynamics Analysis
 │   │   ├── induction_scan.py # Induction head detection logic
+│   │   ├── nla.py          # Natural Language Autoencoder Explainer
 │   │   ├── patching.py     # Causal activation patching tools
 │   │   ├── path_patching.py # Path-based causal intervention engine
 │   │   ├── sae_manager.py  # SAE deployment and anomaly detection
-│   │   └── steering.py     # Steering vector generation and injection
+│   │   ├── steering.py     # Steering vector generation and injection
+│   │   └── universality.py # Cross-architecture feature mapping
 │   ├── models/             
 │   │   └── hooked_dt.py    # TransformerLens-wrapped Decision Transformer
 │   └── utils/              
-├── tests/                  
-│   ├── test_components.py  
-│   ├── test_path_causal_microscope.py
-│   └── test_sae_and_steering.py 
+├── tests/                  # Unit tests for all modules
 ├── config.yaml             
 └── requirements.txt        
 ```
@@ -96,29 +102,43 @@ DT-Circuits/
 ### Prerequisites
 - Python 3.9+
 - PyTorch 2.x
-- TransformerLens
-- SAE-Lens
+- TransformerLens & SAE-Lens
 
-### Installation
-```bash
-pip install -r requirements.txt
-```
+### Quick Start
 
-### Basic Workflow
-1. **Generate Trajectories**:
-   Use the harvester to collect teacher data for model training or SAE feature extraction.
+Follow these steps to initialize the environment and verify the installation.
+
+1. **Environment Setup**
    ```bash
-   python scripts/train_dt.py
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
    ```
 
-2. **Run Interpretability Dashboard**:
-   Launch the interactive UI to perform real-time patching and steering interventions.
+2. **Verification**
+   Run the component tests to ensure all dependencies and hooks are correctly configured.
+   ```bash
+   PYTHONPATH=. pytest tests/test_components.py
+   ```
+
+3. **Dashboard Execution**
+   Launch the `DT-Explorer` dashboard. The dashboard will initialize with a random model if no trained weights are detected.
    ```bash
    streamlit run src/dashboard/app.py
    ```
 
-### Testing
+### Research Workflow
 
-```bash
-PYTHONPATH=. pytest tests/
-```
+The standard pipeline consists of trajectory harvesting via teacher agents, model training, and mechanistic analysis.
+
+1. **Data Harvesting & Model Training**
+   Execute the training script to collect trajectories and train the Decision Transformer.
+   ```bash
+   python scripts/train_dt.py
+   ```
+
+2. **Interpretability Analysis**
+   Utilize the dashboard for circuit mapping (DLA), causal intervention (patching), and SAE latent exploration.
+   ```bash
+   streamlit run src/dashboard/app.py
+   ```
