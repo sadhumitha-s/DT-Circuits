@@ -51,6 +51,11 @@ class HookedDT(nn.Module):
 
     def forward(self, states, actions, returns_to_go, timesteps=None, return_cache=False):
         """Forward pass through DT."""
+        # Truncate to max_length to fit within transformer context
+        states = states[:, -self.max_length:]
+        actions = actions[:, -self.max_length:]
+        returns_to_go = returns_to_go[:, -self.max_length:]
+
         embeddings = self.get_embeddings(states, actions, returns_to_go)
         dummy_tokens = torch.zeros((embeddings.shape[0], embeddings.shape[1]), 
                                  dtype=torch.long, device=embeddings.device)

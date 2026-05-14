@@ -1,9 +1,16 @@
 import os
+import sys
+from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from tqdm import tqdm
+
+# Add project root to path for absolute imports
+root_path = str(Path(__file__).resolve().parent.parent)
+if root_path not in sys.path:
+    sys.path.append(root_path)
 
 from src.models.hooked_dt import HookedDT
 from src.data.harvester import PPOHarvester

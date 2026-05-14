@@ -15,7 +15,7 @@ class ActivationPatcher:
         corrupted_cache: dict,
         layer: int,
         head_index: int,
-        target_token_index: int = -1
+        target_token_index: int = -2
     ):
         """Patches head output with values from a corrupted run."""
         def patch_hook(value, hook):

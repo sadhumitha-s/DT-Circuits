@@ -15,7 +15,7 @@ class LogitAttributionEngine:
         self, 
         cache, 
         target_logit_index: int,
-        token_index: int = -1
+        token_index: int = -2
     ) -> Dict[str, Float[torch.Tensor, "layer head"]]:
         """
         Calculates DLA for each head: Activation @ W_O @ W_U [target_logit]
