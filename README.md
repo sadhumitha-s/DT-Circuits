@@ -102,7 +102,8 @@ DT-Circuits/
 ### Prerequisites
 - Python 3.9+
 - PyTorch 2.x
-- TransformerLens & SAE-Lens
+- TransformerLens
+- SAE-Lens
 
 ### Quick Start
 
@@ -111,7 +112,7 @@ Follow these steps to initialize the environment and verify the installation.
 1. **Environment Setup**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
+   source venv/bin/activate  
    pip install -r requirements.txt
    ```
 
@@ -127,18 +128,14 @@ Follow these steps to initialize the environment and verify the installation.
    streamlit run src/dashboard/app.py
    ```
 
-### Research Workflow
-
-The standard pipeline consists of trajectory harvesting via teacher agents, model training, and mechanistic analysis.
+### Workflow
 
 1. **Data Harvesting & Model Training**
-   Execute the training script to collect trajectories and train the Decision Transformer.
    ```bash
    python scripts/train_dt.py
    ```
 
 2. **Interpretability Analysis**
-   Utilize the dashboard for circuit mapping (DLA), causal intervention (patching), and SAE latent exploration.
    ```bash
    streamlit run src/dashboard/app.py
    ```
