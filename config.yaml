@@ -16,3 +16,4 @@ interpretability:
 sae:
   expansion_factor: 8
   l1_coeff: 0.0005
+  num_episodes: 100

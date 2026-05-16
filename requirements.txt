@@ -14,3 +14,4 @@ pytest
 stable-baselines3
 shimmy
 seaborn
+torchvision

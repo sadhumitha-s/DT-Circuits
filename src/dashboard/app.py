@@ -70,25 +70,25 @@ with tab1:
     st.header("Direct Logit Attribution (DLA)")
     st.write("Visualizing which heads contribute most to the predicted action.")
     
-    if st.button("Run Attribution"):
-        states = torch.from_numpy(traj["observations"]).float().unsqueeze(0)
-        actions = torch.nn.functional.one_hot(torch.from_numpy(traj["actions"]).long(), num_classes=7).float().unsqueeze(0)
-        returns = torch.from_numpy(traj["rewards"]).float().unsqueeze(0).unsqueeze(-1)
-        
-        preds, cache = model(states, actions, returns, return_cache=True)
-        target_action = preds[0, -1].argmax().item()
-        
-        engine = LogitAttributionEngine(model)
-        # Use token index -2 to target the state token which predicts the action
-        dla_results = engine.calculate_dla(cache, target_logit_index=target_action, token_index=-2)
-        
-        fig, ax = plt.subplots()
-        im = ax.imshow(dla_results.detach().cpu().numpy(), cmap="RdBu_r", aspect='auto')
-        plt.colorbar(im)
-        ax.set_xlabel("Head")
-        ax.set_ylabel("Layer")
-        st.pyplot(fig)
-        st.write(f"Analyzing Attribution for Action: {target_action} (at State token)")
+    # Run automatically for better UX when changing trajectories
+    states = torch.from_numpy(traj["observations"]).float().unsqueeze(0)
+    actions = torch.nn.functional.one_hot(torch.from_numpy(traj["actions"]).long(), num_classes=7).float().unsqueeze(0)
+    returns = torch.from_numpy(traj["rewards"]).float().unsqueeze(0).unsqueeze(-1)
+    
+    preds, cache = model(states, actions, returns, return_cache=True)
+    target_action = preds[0, -1].argmax().item()
+    
+    engine = LogitAttributionEngine(model)
+    # Use token index -2 to target the state token which predicts the action
+    dla_results = engine.calculate_dla(cache, target_logit_index=target_action, token_index=-2)
+    
+    fig, ax = plt.subplots()
+    im = ax.imshow(dla_results.detach().cpu().numpy(), cmap="RdBu_r", aspect='auto')
+    plt.colorbar(im)
+    ax.set_xlabel("Head")
+    ax.set_ylabel("Layer")
+    st.pyplot(fig)
+    st.write(f"Analyzing Attribution for Action: {target_action} (at State token)")
 
 with tab2:
     st.header("Activation Patching")

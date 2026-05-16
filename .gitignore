@@ -56,3 +56,5 @@ static/
 
 /PRD.md
 artifacts/
+scratch/
+*.log

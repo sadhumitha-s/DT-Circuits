@@ -85,11 +85,11 @@ class HookedDT(nn.Module):
             return action_preds
 
     @classmethod
-    def from_config(cls, state_dim, action_dim, n_layers=2, n_heads=4, d_model=128):
+    def from_config(cls, state_dim, action_dim, n_layers=2, n_heads=4, d_model=128, max_length=30):
         cfg = HookedTransformerConfig(
             n_layers=n_layers,
             d_model=d_model,
-            n_ctx=300, 
+            n_ctx=3 * max_length, 
             d_head=d_model // n_heads,
             n_heads=n_heads,
             d_vocab=10, # Dummy vocab size
@@ -99,5 +99,5 @@ class HookedDT(nn.Module):
             use_attn_result=True,
             device="cuda" if torch.cuda.is_available() else "cpu"
         )
-        return cls(cfg, state_dim, action_dim)
+        return cls(cfg, state_dim, action_dim, max_length=max_length)
 
