@@ -57,10 +57,15 @@ graph TD
     Res --> SAE[Sparse Autoencoder]
     Res --> Output[Action Logits]
 
-    subgraph Interpretability_Modules
+    subgraph Interpretability_&_Safety
         DLA -.-> Analysis
+        DLA -.-> MAD[Functional Attribution MAD]
         SAE -.-> Features
+        SAE -.-> Auditor[Deceptive Alignment Auditor]
         Intervention[Activation Patching] -.-> Hooks
+        
+        Output & S --> Directer[Dynamic Rejection Steering]
+        Directer -.-> |Feedback Adjust Alpha| Hooks
     end
 ```
 
@@ -78,9 +83,11 @@ graph TD
 *   **Induction Scanning**: Identifies attention heads that perform pattern-matching and temporal sequence recognition.
 *   **Automated Circuit Discovery (ACDC)**: Prunes the model to identify the smallest functional subgraph sufficient to perform a specific task.
 
-### Behavioral Steering
+### Behavioral Steering & Safety Auditing
 *   **Activation Steering**: Injects specific vectors into the residual stream to bias the agent's decision-making without retraining the weights.
-*   **Safety Auditing**: Monitors SAE reconstruction error and feature activation to detect anomalous or out-of-distribution internal states.
+*   **Dynamic Rejection Steering (Directer)**: Integrates a feedback loop during inference to dynamically scale back steering magnitude if it pushes the action distribution toward illegal or dangerous actions.
+*   **Deceptive Alignment Auditing**: Uses SAE feature decomposition to identify the "situational awareness switch" feature in deceptively aligned agents (model organisms watched vs unwatched) and traces the circuit of attention heads that activate it.
+*   **Functional Attribution MAD**: Detects mechanistic anomalies (such as backdoors or reward hacks) by comparing active logit attribution signatures to a cached reference profile, flagging when goals are met using atypical circuits.
 
 ---
 
@@ -101,6 +108,7 @@ DT-Circuits/
 │   │   ├── nla.py          # Natural Language Autoencoder Explainer
 │   │   ├── patching.py     # Causal activation patching tools
 │   │   ├── path_patching.py # Path-based causal intervention engine
+│   │   ├── safety.py       # Safety auditing, directer, and deceptive alignment tools
 │   │   ├── sae_manager.py  # SAE deployment and anomaly detection
 │   │   ├── steering.py     # Steering vector generation and injection
 │   │   └── universality.py # Cross-architecture feature mapping
@@ -192,6 +200,7 @@ Detailed technical documentation for specific modules:
 *   [Circuit Discovery](./docs/circuit_discovery.md)
 *   [Causal Intervention](./docs/activation_patching.md)
 *   [SAEs and Steering](./docs/sae_steering.md)
+*   [Safety Auditing & Steering](./docs/safety_auditing.md)
 
 ---
 
