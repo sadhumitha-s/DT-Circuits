@@ -47,6 +47,7 @@ wandb/
 .pytest_cache/
 .coverage
 htmlcov/
+tests/artifacts/
 
 # Streamlit
 .streamlit/

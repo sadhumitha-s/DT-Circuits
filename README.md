@@ -8,6 +8,8 @@
 
 DT-Circuits is a research framework for mechanistic interpretability of Decision Transformers, focused on causal analysis, sparse feature decomposition, and circuit-level understanding of sequential decision-making agents.
 
+**Live Interactive Demo:** [DT-Explorer on Hugging Face Spaces](https://huggingface.co/spaces/sadhumitha-s/DT-Explorer)
+
 ---
 
 ## Table of Contents
@@ -17,6 +19,7 @@ DT-Circuits is a research framework for mechanistic interpretability of Decision
 - [Project Structure](#project-structure)
 - [Installation and Usage](#installation-and-usage)
 - [Documentation](#documentation)
+- [Foundational Research & References](#foundational-research--references)
 - [Citation](#citation)
 - [License](#license)
 
@@ -167,48 +170,71 @@ sae:
 
 ---
 
-## Installation and Usage
+## Execution Modes: Installation and Usage
 
-### Setup
+There are two primary ways to run and interact with the **DT-Circuits** framework depending on your research needs:
+
+---
+
+### Way 1: Interactive Cloud Demo (Hugging Face Spaces)
+
+For instant visual exploration, path intervention, and alignment auditing without any local workspace preparation, launch the web dashboard directly:
+
+* **Demo Link:** [DT-Explorer on Hugging Face Spaces](https://huggingface.co/spaces/sadhumitha-s/DT-Explorer)
+
+> [!NOTE]
+> **Concise Demo Constraints:**
+> * **CPU-Bound Resources:** Runs on standard free-tier CPU instances (2 vCPUs, 16 GB RAM); high-overhead operations like ACDC scans may show higher latency than on a local GPU workspace.
+> * **Slices Dataset:** Trajectory datasets are dynamically sliced down to a lightweight demo set under a **10MB limit** (defined in [deploy.sh](file:///Users/sadhumitha/Documents/projects/DT-Circuits/scripts/deploy.sh#L19-L33)) for storage and memory footprint constraints.
+> * **Read-Only / Ephemeral Container:** Uses pre-baked static weights (`mini_dt.pt`) and pre-trained SAE checkpoints. Training new models or writing persistent states is disabled.
+
+---
+
+### Way 2: Clone and Run Locally (Full Pipeline)
+
+For full end-to-end research, customized hyperparameter tuning, local data harvesting, and GPU-accelerated model or SAE training, run the workspace on your machine.
+
+#### Local Environment Setup
+First, clone the repository, set up a virtual environment, and install dependencies:
 ```bash
+git clone https://github.com/sadhumitha-s/DT-Circuits
+cd DT-Circuits
+
 python -m venv venv
 source venv/bin/activate  
+
 pip install -r requirements.txt
 ```
 
-### Dashboard Execution
-You can access the hosted version on Hugging Face Spaces instantly, or run it locally:
+#### Option 2.1: Simple Workflows via Makefile
+The workspace includes a standardized [Makefile](file:///Users/sadhumitha/Documents/projects/DT-Circuits/Makefile) to orchestrate common research pipelines with single commands:
 
-* **Live Hosted Space:** [DT-Explorer Web App](https://sadhumitha-s-dt-explorer.hf.space) (No local installation needed!)
-* **Local Run:** Launch the dashboard on your machine (it will initialize with a random model if no trained weights are detected):
-  ```bash
-  streamlit run src/dashboard/app.py
-  ```
+```bash
+make setup      # Set up local environment & install requirements
+make train      # Run the full end-to-end pipeline (Data harvesting -> DT -> SAE training)
+make dashboard  # Run the Streamlit visualization dashboard locally
+```
 
-### Workflow
+#### Option 2.2: Granular Control via Bash & Python
+For research flexibility, execute each step of the pipeline manually using granular terminal scripts:
 
-1. **Data Harvesting & Model Training**
+1. **Trajectories & Model Training**
+   Harvest teacher trajectories and train the target Decision Transformer (`HookedDT`):
    ```bash
    python scripts/train_dt.py
    ```
 
-2. **SAE Training**
+2. **TopK Sparse Autoencoder (SAE) Training**
+   Train sparse autoencoders on target activation layers:
    ```bash
    python scripts/train_sae.py
    ```
 
-3. **Interpretability Analysis**
+3. **Interactive Analysis**
+   Launch the Streamlit visualization engine locally to run audits with custom weights:
    ```bash
    streamlit run src/dashboard/app.py
    ```
-
-### Alternative: Makefile
-Common tasks can also be executed via `make`:
-```bash
-make setup      # Install dependencies
-make train      # Run full training pipeline (DT + SAE)
-make dashboard  # Launch DT-Explorer
-```
 
 ---
 
@@ -219,6 +245,19 @@ Detailed technical documentation for specific modules:
 *   [Causal Intervention](./docs/activation_patching.md)
 *   [SAEs and Steering](./docs/sae_steering.md)
 *   [Safety Auditing & Steering](./docs/safety_auditing.md)
+
+---
+
+## Foundational Research & References
+
+This framework implements and builds upon the following foundational methodologies:
+
+*   **Decision Transformers**: [Chen et al., 2021](https://arxiv.org/abs/2106.01345) — Reinforcement learning as sequence modeling.
+*   **Transformer Circuits**: [Elhage et al., 2021](https://transformer-circuits.pub/2021/framework/index.html) — Mathematical foundations of mechanistic interpretability.
+*   **ACDC (Automated Circuit Discovery)**: [Conmy et al., 2023](https://arxiv.org/abs/2304.14997) — Algorithmic discovery of subgraphs.
+*   **Sparse Autoencoders (SAEs)**: [Bricken et al., 2023](https://transformer-circuits.pub/2023/monosemantic-features/index.html) (monosemantic features) & [Gao et al., 2024](https://arxiv.org/abs/2406.04096) (TopK SAEs).
+*   **Activation Steering**: [Turner et al., 2023](https://arxiv.org/abs/2308.10248) — Control via residual stream vector additions.
+*   **Path Patching**: [Goldowsky-Dill et al., 2023](https://arxiv.org/abs/2304.05969) — Inter-component causal mediation.
 
 ---
 
