@@ -18,8 +18,37 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          # 1. Initialize Git LFS inside the runner
           git lfs install
+          
+          # 2. Configure temporary Git identity for dynamic commit
+          git config --global user.email "deploy@github.actions"
+          git config --global user.name "GitHub Actions"
+          
+          # 3. Dynamically prepend the Hugging Face YAML frontmatter to README.md on the fly
+          cat << 'EOF' > hf_frontmatter.txt
+          ---
+          title: DT-Explorer
+          emoji: 🔍
+          colorFrom: blue
+          colorTo: indigo
+          sdk: docker
+          pinned: false
+          ---
+          
+          EOF
+          cat hf_frontmatter.txt README.md > temp_readme.md
+          mv temp_readme.md README.md
+          rm hf_frontmatter.txt
+          
+          # 4. Commit the injected frontmatter locally in the runner
+          git add README.md
+          git commit -m "chore: inject Hugging Face frontmatter metadata dynamically" || echo "No changes to commit"
+          
+          # 5. Configure a named remote to allow Git LFS to authenticate correctly
           git remote add hf https://sadhumitha-s:$HF_TOKEN@huggingface.co/spaces/sadhumitha-s/DT-Explorer
+          
+          # 6. Force push using HEAD:main to the hf remote
           git push --force hf HEAD:main 2> push_err.txt || {
             echo "=== HUGGING FACE PUSH ERROR LOG ==="
             if [ -n "$HF_TOKEN" ]; then

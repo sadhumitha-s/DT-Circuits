@@ -1,12 +1,3 @@
----
-title: DT-Explorer
-emoji: 🔍
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-pinned: false
----
-
 # DT-Circuits: Mechanistic Interpretability for Decision Transformers
 
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A5%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/sadhumitha-s/DT-Explorer)
