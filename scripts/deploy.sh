@@ -39,7 +39,7 @@ echo "=========================================================="
 # 2. Stage model weights, SAE checkpoints, and configuration files
 echo "2. Staging deployment files in Git..."
 echo "=========================================================="
-git add data/trajectories_demo.pt models/mini_dt.pt artifacts/saes/ .gitignore Dockerfile docker-compose.yml Makefile scripts/deploy.sh src/dashboard/app.py .github/workflows/hf_sync.yml
+git add data/trajectories_demo.pt models/mini_dt.pt artifacts/saes/ .gitignore Dockerfile docker-compose.yml Makefile scripts/deploy.sh src/dashboard/app.py .github/workflows/hf_sync.yml README.md .gitattributes
 echo "Staged."
 echo ""
 

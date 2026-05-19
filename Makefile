@@ -44,7 +44,7 @@ deploy:
 	@echo "=========================================================="
 	@echo "2. Staging and committing deployment assets..."
 	@echo "=========================================================="
-	@git add data/trajectories_demo.pt models/mini_dt.pt artifacts/saes/ .gitignore Dockerfile docker-compose.yml Makefile scripts/deploy.sh src/dashboard/app.py .github/workflows/hf_sync.yml
+	@git add data/trajectories_demo.pt models/mini_dt.pt artifacts/saes/ .gitignore Dockerfile docker-compose.yml Makefile scripts/deploy.sh src/dashboard/app.py .github/workflows/hf_sync.yml README.md .gitattributes
 	@git commit -m "feat: redeploy fresh model weights and demo trajectories" || echo "No new changes to commit."
 	@echo ""
 	@echo "=========================================================="
