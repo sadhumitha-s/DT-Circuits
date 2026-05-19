@@ -9,7 +9,7 @@ pinned: false
 
 # DT-Circuits: Mechanistic Interpretability for Decision Transformers
 
-
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A5%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/sadhumitha-s/DT-Explorer)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch 2.x](https://img.shields.io/badge/PyTorch-2.x-red.svg)](https://pytorch.org/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -186,10 +186,13 @@ pip install -r requirements.txt
 ```
 
 ### Dashboard Execution
-Launch the `DT-Explorer` dashboard. The dashboard will initialize with a random model if no trained weights are detected.
-```bash
-streamlit run src/dashboard/app.py
-```
+You can access the hosted version on Hugging Face Spaces instantly, or run it locally:
+
+* **Live Hosted Space:** [DT-Explorer Web App](https://sadhumitha-s-dt-explorer.hf.space) (No local installation needed!)
+* **Local Run:** Launch the dashboard on your machine (it will initialize with a random model if no trained weights are detected):
+  ```bash
+  streamlit run src/dashboard/app.py
+  ```
 
 ### Workflow
 
