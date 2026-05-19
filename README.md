@@ -67,6 +67,13 @@ graph TD
         Output & S --> Directer[Dynamic Rejection Steering]
         Directer -.-> |Feedback Adjust Alpha| Hooks
     end
+
+    subgraph Interactive_Surgeon_Dashboard
+        Surgeon[Circuit Surgeon Ablation Engine] -.-> |Dynamic Node/Edge Hooks| Hooks
+        Surgeon --> |Format Schema| Neuronpedia[Neuronpedia Export Hub]
+        Surgeon --> |Live Loop Execution| MiniGrid[MiniGrid Behavioral Audit]
+        Output -.-> Surgeon
+    end
 ```
 
 ---
@@ -89,6 +96,11 @@ graph TD
 *   **Deceptive Alignment Auditing**: Uses SAE feature decomposition to identify the "situational awareness switch" feature in deceptively aligned agents (model organisms watched vs unwatched) and traces the circuit of attention heads that activate it.
 *   **Functional Attribution MAD**: Detects mechanistic anomalies (such as backdoors or reward hacks) by comparing active logit attribution signatures to a cached reference profile, flagging when goals are met using atypical circuits.
 
+### Interactive Surgical Auditing & Peer Review
+*   **Interactive Circuit Surgery**: Provides real-time interactive node (Heads, MLPs) and communication path (edges) ablation tools. Severed pathways dynamically update the underlying architecture using custom forward hooks.
+*   **Live Behavioral Audits**: Evaluates guided agent behavior inside a live Gymnasium (MiniGrid) environment step-by-step to immediately visualize behavioral changes under currently selected surgical configurations.
+*   **Neuronpedia Export**: Formats the discovered circuit blueprint, active components, and performance metrics into standardized schemas for publishing directly to the Neuronpedia platform for public peer review.
+
 ---
 
 ## Project Structure
@@ -103,8 +115,10 @@ DT-Circuits/
 │   ├── interpretability/   
 │   │   ├── acdc.py         # Automated Circuit Discovery logic
 │   │   ├── attribution.py  # Direct Logit Attribution (DLA)
+│   │   ├── circuit_surgeon.py # Interactive node & path ablation engine
 │   │   ├── evolution.py    # Training Dynamics Analysis
 │   │   ├── induction_scan.py # Induction head detection logic
+│   │   ├── neuronpedia.py  # Neuronpedia publishing client
 │   │   ├── nla.py          # Natural Language Autoencoder Explainer
 │   │   ├── patching.py     # Causal activation patching tools
 │   │   ├── path_patching.py # Path-based causal intervention engine

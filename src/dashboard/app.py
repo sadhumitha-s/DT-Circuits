@@ -2,6 +2,8 @@ import streamlit as st
 import torch
 import os
 import sys
+import time
+import json
 from pathlib import Path
 
 # Add project root to path for absolute imports
@@ -11,6 +13,8 @@ if root_path not in sys.path:
 
 import numpy as np
 import matplotlib.pyplot as plt
+import gymnasium as gym
+from minigrid.wrappers import FlatObsWrapper
 from src.models.hooked_dt import HookedDT
 from src.interpretability.attribution import LogitAttributionEngine
 from src.interpretability.patching import ActivationPatcher
@@ -64,7 +68,12 @@ model = get_model(model_path, state_dim)
 traj_idx = st.sidebar.number_input("Select Trajectory", 0, len(trajectories)-1, 0)
 traj = trajectories[traj_idx]
 
-tab1, tab2, tab3 = st.tabs(["Circuit Mapping (DLA)", "Causal Intervention (Patching)", "SAE Latents"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "Circuit Mapping (DLA)", 
+    "Causal Intervention (Patching)", 
+    "SAE Latents",
+    "Brain Surgeon & Circuit Explorer"
+])
 
 with tab1:
     st.header("Direct Logit Attribution (DLA)")
@@ -176,3 +185,299 @@ with tab3:
     except FileNotFoundError:
         st.warning(f"No trained SAE found for {selected_hook} in `artifacts/saes/`.")
         st.info("Please run `python scripts/train_sae.py` to generate latent features.")
+
+with tab4:
+    st.header("Brain Surgeon & Circuit Explorer")
+    st.write("Perform real-time node and path ablations to visualize and audit the agent's internal reasoning pathways.")
+    
+    from src.interpretability.circuit_surgeon import CircuitSurgeon
+    from src.interpretability.neuronpedia import NeuronpediaExporter
+
+    # Initialize CircuitSurgeon on the active model
+    surgeon = CircuitSurgeon(model)
+    n_layers = model.cfg.n_layers
+    n_heads = model.cfg.n_heads
+
+    # Dynamic nodes list
+    all_nodes = []
+    for l in range(n_layers):
+        for h in range(n_heads):
+            all_nodes.append(f"L{l}H{h}")
+        all_nodes.append(f"L{l}MLP")
+
+    # Dynamic edges list
+    all_edges = []
+    for l1 in range(n_layers):
+        # Within layer attention to MLP
+        for h in range(n_heads):
+            all_edges.append(f"L{l1}H{h} -> L{l1}MLP")
+        
+        # Across layers
+        for l2 in range(l1 + 1, n_layers):
+            for h1 in range(n_heads):
+                for h2 in range(n_heads):
+                    all_edges.append(f"L{l1}H{h1} -> L{l2}H{h2}")
+                all_edges.append(f"L{l1}H{h1} -> L{l2}MLP")
+            for h2 in range(n_heads):
+                all_edges.append(f"L{l1}MLP -> L{l2}H{h2}")
+            all_edges.append(f"L{l1}MLP -> L{l2}MLP")
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("Surgical Controls")
+        
+        ablated_nodes_selected = st.multiselect(
+            "Ablate Nodes",
+            options=all_nodes,
+            help="Zero out all activations exiting these specific components."
+        )
+        
+        ablated_edges_selected = st.multiselect(
+            "Ablate Communication Paths (Edges)",
+            options=all_edges,
+            help="Sever the communication channel between two layers or components."
+        )
+        
+        # Register currently selected ablations to CircuitSurgeon
+        for node in ablated_nodes_selected:
+            surgeon.add_node_ablation(node)
+        for edge in ablated_edges_selected:
+            parts = edge.split(" -> ")
+            surgeon.add_edge_ablation(parts[0], parts[1])
+
+        # Target reward-to-go slider
+        target_rtg = st.slider("Goal Reward-to-Go", 0.1, 1.5, 0.9, 0.05)
+        
+        run_simulation = st.button("Run Live MiniGrid Simulation")
+
+    with col2:
+        st.subheader("Interactive Circuit Blueprint")
+        st.write("Visualized via Cytoscape.js. Severed components are highlighted in vibrant red/dashed styling.")
+
+        # Build elements for Cytoscape.js
+        cy_nodes = []
+        cy_edges = []
+
+        # Position layers horizontally
+        for l in range(n_layers):
+            x_pos = 100 + l * 250
+            for h in range(n_heads):
+                node_id = f"L{l}H{h}"
+                y_pos = 50 + h * 90
+                is_ablated = node_id in ablated_nodes_selected
+                cy_nodes.append({
+                    "data": {"id": node_id, "label": node_id, "type": "head", "ablated": is_ablated},
+                    "position": {"x": x_pos, "y": y_pos}
+                })
+            
+            mlp_id = f"L{l}MLP"
+            y_pos = 50 + n_heads * 90
+            is_ablated = mlp_id in ablated_nodes_selected
+            cy_nodes.append({
+                "data": {"id": mlp_id, "label": mlp_id, "type": "mlp", "ablated": is_ablated},
+                "position": {"x": x_pos, "y": y_pos}
+            })
+
+        for edge in all_edges:
+            parts = edge.split(" -> ")
+            src, dest = parts[0], parts[1]
+            is_edge_ablated = edge in ablated_edges_selected
+            is_endpoint_ablated = src in ablated_nodes_selected or dest in ablated_nodes_selected
+            cy_edges.append({
+                "data": {
+                    "id": f"{src}_{dest}",
+                    "source": src,
+                    "target": dest,
+                    "ablated": is_edge_ablated or is_endpoint_ablated
+                }
+            })
+
+        cy_elements_json = json.dumps(cy_nodes + cy_edges)
+        
+        cytoscape_html = f"""
+        <html>
+        <head>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+            <style>
+                #cy {{
+                    width: 100%;
+                    height: 400px;
+                    background-color: #0e1117;
+                    border: 1px solid #30363d;
+                    border-radius: 8px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div id="cy"></div>
+            <script>
+                var cy = cytoscape({{
+                    container: document.getElementById('cy'),
+                    elements: {cy_elements_json},
+                    style: [
+                        {{
+                            selector: 'node',
+                            style: {{
+                                'content': 'data(label)',
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'color': '#ffffff',
+                                'background-color': '#0066cc',
+                                'font-family': 'sans-serif',
+                                'font-weight': 'bold',
+                                'font-size': '11px',
+                                'width': '55px',
+                                'height': '35px',
+                                'border-width': '2px',
+                                'border-color': '#58a6ff'
+                            }}
+                        }},
+                        {{
+                            selector: 'node[type="mlp"]',
+                            style: {{
+                                'shape': 'rectangle',
+                                'width': '75px',
+                                'height': '30px',
+                                'background-color': '#1b8a5a',
+                                'border-color': '#3fb950'
+                            }}
+                        }},
+                        {{
+                            selector: 'node[ablated]',
+                            style: {{
+                                'background-color': '#9e1c1c',
+                                'border-color': '#f85149',
+                                'border-style': 'dashed',
+                                'color': '#f85149'
+                            }}
+                        }},
+                        {{
+                            selector: 'edge',
+                            style: {{
+                                'curve-style': 'bezier',
+                                'target-arrow-shape': 'triangle',
+                                'line-color': '#484f58',
+                                'target-arrow-color': '#484f58',
+                                'width': 1.5,
+                                'opacity': 0.6
+                            }}
+                        }},
+                        {{
+                            selector: 'edge[ablated]',
+                            style: {{
+                                'line-color': '#f85149',
+                                'target-arrow-color': '#f85149',
+                                'line-style': 'dashed',
+                                'width': 2.5,
+                                'opacity': 0.95
+                            }}
+                        }}
+                    ],
+                    layout: {{
+                        name: 'preset'
+                    }},
+                    userZoomingEnabled: false,
+                    userPanningEnabled: false,
+                    boxSelectionEnabled: false
+                }});
+            </script>
+        </body>
+        </html>
+        """
+        st.iframe(cytoscape_html, height=420)
+
+    # 5. Live Simulation execution block
+    if run_simulation:
+        st.subheader("Live Agent Behavioral Audit")
+        status_box = st.empty()
+        img_box = st.empty()
+        
+        try:
+            # Recreate exact MiniGrid env setup from harvester
+            env = FlatObsWrapper(gym.make("MiniGrid-Empty-8x8-v0", render_mode="rgb_array"))
+            obs, _ = env.reset(seed=42)
+            
+            states_history = [obs]
+            actions_history = [np.zeros(7)]
+            rewards_history = [target_rtg]
+            
+            max_len = model.max_length
+            total_reward = 0.0
+            steps = 0
+            
+            while steps < 30:
+                # Format histories into tensors
+                states_t = torch.tensor(np.array(states_history[-max_len:]), dtype=torch.float32).unsqueeze(0)
+                actions_t = torch.tensor(np.array(actions_history[-max_len:]), dtype=torch.float32).unsqueeze(0)
+                returns_t = torch.tensor(np.array(rewards_history[-max_len:]), dtype=torch.float32).unsqueeze(0).unsqueeze(-1)
+                
+                # Execute DT with ablated circuit surgeon forward
+                preds = surgeon.compute_ablated_forward(states_t, actions_t, returns_t)
+                act = preds[0, -1].argmax().item()
+                
+                next_obs, reward, done, truncated, _ = env.step(act)
+                total_reward += reward
+                steps += 1
+                
+                # Render current grid step
+                frame = env.render()
+                img_box.image(frame, caption=f"Step {steps} | Action {act}", width=320)
+                status_box.info(f"Stepping Agent... Current Step: {steps}/30 | Cumulative Reward: {total_reward:.4f}")
+                
+                # Update histories
+                states_history.append(next_obs)
+                act_one_hot = np.zeros(7)
+                act_one_hot[act] = 1.0
+                actions_history.append(act_one_hot)
+                rewards_history.append(rewards_history[-1] - reward)
+                
+                time.sleep(0.12)
+                
+                if done or truncated:
+                    break
+            
+            env.close()
+            
+            if total_reward > 0:
+                st.success(f"Execution complete. Agent successfully reached the goal in {steps} steps! Cumulative Reward: {total_reward:.4f}")
+            else:
+                st.warning("Agent failed to reach the goal under this ablated circuit/communication configuration.")
+                
+        except Exception as e:
+            st.error(f"Failed to run environment simulation: {str(e)}")
+
+    # 6. Neuronpedia Export Section
+    st.markdown("---")
+    st.subheader("Neuronpedia Export Hub")
+    st.write("Publish discovered circuits, active heads, and ablated configurations to public peer-review.")
+    
+    np_col1, np_col2 = st.columns(2)
+    with np_col1:
+        np_key = st.text_input("Neuronpedia Access Key (Optional)", type="password", help="If provided, uploads directly. Otherwise, saves circuit payload in artifacts/.")
+    with np_col2:
+        export_btn = st.button("Publish Discovered Circuit Blueprint")
+        
+    if export_btn:
+        exporter = NeuronpediaExporter(api_key=np_key if np_key else None)
+        manifest = {
+            "active_heads": [n for n in all_nodes if n not in ablated_nodes_selected],
+            "pruned_count": len(ablated_nodes_selected),
+            "initial_perf": 1.0,
+            "final_perf": 0.0 if len(ablated_nodes_selected) > 0 else 1.0,
+            "ablated_paths": list(ablated_edges_selected),
+            "ablated_nodes": list(ablated_nodes_selected),
+            "state_dim": state_dim,
+            "action_dim": 7,
+            "n_layers": n_layers,
+            "n_heads": n_heads
+        }
+        res = exporter.export_circuit(model_id="mini_dt", circuit_manifest=manifest)
+        if "local" in res["status"]:
+            st.success(res["message"])
+            st.json(res["payload"])
+        elif "success" in res["status"]:
+            st.success(res["message"])
+            st.markdown(f"[View Live Uploaded Circuit]({res['url']})")
+        else:
+            st.error(res["message"])
