@@ -30,10 +30,10 @@ COPY data/trajectories_demo.pt ./data/trajectories.pt
 COPY src/ ./src/
 
 # Expose default Streamlit port
-EXPOSE 8501
+EXPOSE 7860
 
 # Streamlit configurations for production/cloud environments
-ENV STREAMLIT_SERVER_PORT=8501
+ENV STREAMLIT_SERVER_PORT=7860
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_SERVER_ENABLE_CORS=false
