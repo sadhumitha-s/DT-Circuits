@@ -1,0 +1,54 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allows manual syncing from the GitHub Action tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug Secret Presence
+        run: |
+          if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+            echo "❌ HF_TOKEN is empty or missing in GitHub Repository Secrets!"
+            exit 1
+          else
+            echo "✅ HF_TOKEN is successfully configured in GitHub Repository Secrets (len: ${#HF_TOKEN})."
+          fi
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # 1. Initialize Git LFS inside the runner
+          git lfs install
+          
+          # 2. Configure a named remote to allow Git LFS to authenticate correctly
+          git remote add hf https://sadhumitha-s:$HF_TOKEN@huggingface.co/spaces/sadhumitha-s/DT-Explorer
+          
+          # 3. Force push using HEAD:main to the hf remote
+          git push --force hf HEAD:main 2> push_err.txt || {
+            echo "=== HUGGING FACE PUSH ERROR LOG ==="
+            if [ -n "$HF_TOKEN" ]; then
+              sed "s/$HF_TOKEN/*****_TOKEN/g" push_err.txt
+            else
+              cat push_err.txt
+            fi
+            exit 1
+          }
+
+
+
+
+
+
+

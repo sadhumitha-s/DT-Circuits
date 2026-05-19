@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  dt-explorer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dt_explorer
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount models and data directories to reflect updates in real-time
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Optional: set wandb or neuronpedia tokens here if needed
+      # - WANDB_API_KEY=${WANDB_API_KEY}
+    restart: unless-stopped

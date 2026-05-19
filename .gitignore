@@ -26,12 +26,14 @@ venv/
 ENV/
 
 # Data and Models
-data/
-models/*.pt
-models/*.pth
+data/*
+!data/trajectories_demo.pt
+models/*
+!models/mini_dt.pt
+*.pth
 *.zip
 *.h5
-*.pt
+
 
 # Experiment Tracking
 wandb/
@@ -55,6 +57,8 @@ static/
 .venv
 
 /PRD.md
-artifacts/
+artifacts/*
+!artifacts/saes/
+!artifacts/saes/*
 scratch/
 *.log

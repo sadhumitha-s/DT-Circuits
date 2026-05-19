@@ -25,11 +25,37 @@ st.title("DT-Explorer: Mechanistic Interpretability for DT")
 
 # Sidebar for loading model and data
 st.sidebar.header("Data & Model")
-model_path = st.sidebar.text_input("Model Path", "models/mini_dt.pt")
-data_path = st.sidebar.text_input("Trajectory Path", "data/trajectories.pt")
+
+# List available models in a secure dropdown to prevent Path Traversal
+models_dir = Path("models")
+available_models = []
+if models_dir.exists():
+    available_models = [str(p) for p in models_dir.glob("*.pt")]
+if not available_models:
+    available_models = ["models/mini_dt.pt"]
+model_path = st.sidebar.selectbox("Select Model Path", sorted(available_models))
+
+# List available datasets in a secure dropdown to prevent Path Traversal
+data_dir = Path("data")
+available_data = []
+if data_dir.exists():
+    available_data = [str(p) for p in data_dir.glob("*.pt")]
+if not available_data:
+    available_data = ["data/trajectories.pt"]
+data_path = st.sidebar.selectbox("Select Trajectory Path", sorted(available_data))
+
+# Validation check to guarantee path safety (Defense-in-depth)
+def is_safe_path(base_dir, path):
+    base_abs = Path(base_dir).resolve()
+    path_abs = Path(path).resolve()
+    return path_abs.parts[:len(base_abs.parts)] == base_abs.parts
 
 @st.cache_data
 def get_data(path):
+    if not is_safe_path("data", path):
+        st.sidebar.error("Access Denied: Invalid trajectory path.")
+        st.stop()
+        
     if not os.path.exists(path):
         st.sidebar.warning(f"Data not found at {path}. Please run training script.")
         return None
@@ -38,13 +64,17 @@ def get_data(path):
 
 @st.cache_resource
 def get_model(path, state_dim):
+    if not is_safe_path("models", path):
+        st.sidebar.error("Access Denied: Invalid model path.")
+        st.stop()
+        
     if not os.path.exists(path):
         st.sidebar.warning(f"Model not found at {path}. Using random init for demo.")
         return HookedDT.from_config(state_dim=state_dim, action_dim=7)
     
     model = HookedDT.from_config(state_dim=state_dim, action_dim=7)
     try:
-        # Load state dict (usually safe for weights_only=True, but let's be explicit)
+        # Load state dict (safe for weights_only=True)
         model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True))
         model.eval()
     except Exception as e:
